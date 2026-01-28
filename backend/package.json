@@ -1,0 +1,22 @@
+{
+  "name": "chat-moderation-backend",
+  "version": "1.0.0",
+  "description": "Real-time chat moderation backend using Hugging Face API",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": ["chat", "moderation", "websocket", "huggingface"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "@gradio/client": "^1.0.0"
+  }
+}

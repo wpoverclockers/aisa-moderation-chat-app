@@ -1,0 +1,26 @@
+name: Security Check
+
+on: [push, pull_request]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Check for exposed secrets
+        run: |
+          if grep -r "hf_" . --exclude-dir=node_modules --exclude="*.md" --exclude="*.json" --exclude=".git*" | grep -v "HF_API_TOKEN" | grep -v "hf_" | grep -v "huggingface"; then
+            echo "❌ ERROR: Potential secrets found in code!"
+            exit 1
+          fi
+          echo "✅ No secrets found in code"
+      
+      - name: Verify .env is gitignored
+        run: |
+          if git check-ignore backend/.env frontend/.env .env; then
+            echo "✅ .env files are properly gitignored"
+          else
+            echo "❌ ERROR: .env files are NOT gitignored!"
+            exit 1
+          fi

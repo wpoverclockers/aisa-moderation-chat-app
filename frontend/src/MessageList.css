@@ -1,0 +1,173 @@
+.message-list {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty-state {
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
+}
+
+.empty-state p {
+  margin-bottom: 8px;
+}
+
+.empty-hint {
+  font-size: 14px;
+  color: #bbb;
+}
+
+.message {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+}
+
+.message-approved {
+  border-left: 4px solid #4caf50;
+}
+
+.message-blocked {
+  border-left: 4px solid #f44336;
+  background: #ffebee;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.message-author {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.message-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.message-content {
+  color: #333;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.message-content-blocked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c62828;
+  font-weight: 500;
+}
+
+.blocked-icon {
+  font-size: 18px;
+}
+
+.blocked-text {
+  font-size: 14px;
+}
+
+.blocked-reason {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #d32f2f;
+  font-style: italic;
+}
+
+.blocked-details {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #999;
+}
+
+.message-status {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #4caf50;
+  font-style: italic;
+}
+
+.message-actions {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.report-button {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.report-button:hover:not(:disabled) {
+  background: #ffc107;
+  color: #000;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.report-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.report-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar styling */
+.messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
