@@ -4,7 +4,21 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import './Chat.css';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+// Use relative URL if VITE_SOCKET_URL is not set (for same-domain deployment)
+// Or use absolute URL if explicitly set
+const getSocketURL = () => {
+  const envUrl = import.meta.env.VITE_SOCKET_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+  // If no explicit URL, use same origin (works when frontend/backend on same domain)
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:3001'; // Fallback for SSR
+};
+
+const SOCKET_URL = getSocketURL();
 
 function Chat() {
   const [messages, setMessages] = useState([]);
@@ -12,6 +26,7 @@ function Chat() {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
   const [username, setUsername] = useState('');
+  const [usernameSet, setUsernameSet] = useState(false);
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -67,16 +82,47 @@ function Chat() {
       return;
     }
 
+    if (!usernameSet || !username.trim()) {
+      setError('Please enter your name first');
+      return;
+    }
+
     if (socketRef.current) {
       socketRef.current.emit('message', {
         text,
-        author: username || 'Anonymous',
+        author: username,
       });
     }
   };
 
   const handleUsernameChange = (e) => {
     setUsername(e.target.value);
+    setError(null);
+  };
+
+  const handleUsernameSubmit = (e) => {
+    e.preventDefault();
+    const trimmedUsername = username.trim();
+    
+    if (!trimmedUsername) {
+      setError('Please enter your name');
+      return;
+    }
+
+    if (trimmedUsername.length > 20) {
+      setError('Name must be 20 characters or less');
+      return;
+    }
+
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit('register_username', {
+        username: trimmedUsername,
+      });
+      setUsernameSet(true);
+      setError(null);
+    } else {
+      setError('Not connected to server');
+    }
   };
 
   return (
@@ -86,7 +132,7 @@ function Chat() {
           <span className="status-dot"></span>
           {isConnected ? 'Connected' : 'Disconnected'}
         </div>
-        {username && (
+        {usernameSet && username && (
           <div className="username-display">
             Chatting as: <strong>{username}</strong>
           </div>
@@ -99,16 +145,26 @@ function Chat() {
         </div>
       )}
 
-      <div className="username-input-container">
-        <input
-          type="text"
-          placeholder="Enter your name (optional)"
-          value={username}
-          onChange={handleUsernameChange}
-          className="username-input"
-          maxLength={20}
-        />
-      </div>
+      {!usernameSet && (
+        <div className="username-input-container">
+          <form onSubmit={handleUsernameSubmit} className="username-form">
+            <input
+              type="text"
+              placeholder="Enter your name (required)"
+              value={username}
+              onChange={handleUsernameChange}
+              className="username-input"
+              maxLength={20}
+              required
+              autoFocus
+            />
+            <button type="submit" className="username-submit-button" disabled={!isConnected}>
+              Join Chat
+            </button>
+          </form>
+          <p className="username-hint">You must enter your name to start chatting</p>
+        </div>
+      )}
 
       <MessageList 
         messages={messages} 
@@ -120,10 +176,12 @@ function Chat() {
         }}
       />
 
-      <MessageInput 
-        onSendMessage={handleSendMessage}
-        disabled={!isConnected}
-      />
+      {usernameSet && (
+        <MessageInput 
+          onSendMessage={handleSendMessage}
+          disabled={!isConnected}
+        />
+      )}
     </div>
   );
 }

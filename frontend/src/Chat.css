@@ -52,15 +52,23 @@
 }
 
 .username-input-container {
-  padding: 12px 20px;
+  padding: 20px;
   background: white;
   border-bottom: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.username-form {
+  display: flex;
+  gap: 10px;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .username-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
   outline: none;
@@ -69,6 +77,34 @@
 
 .username-input:focus {
   border-color: #667eea;
+}
+
+.username-submit-button {
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.username-submit-button:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.username-submit-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.username-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
 }
 
 @keyframes pulse {

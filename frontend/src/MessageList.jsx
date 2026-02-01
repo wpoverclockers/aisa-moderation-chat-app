@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import './MessageList.css';
 
-const API_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+// Use relative URL for API calls (same domain as frontend)
+const getAPIURL = () => {
+  const envUrl = import.meta.env.VITE_SOCKET_URL;
+  if (envUrl) {
+    return envUrl;
+  }
+  // If no explicit URL, use same origin
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:3001';
+};
+
+const API_URL = getAPIURL();
 
 function MessageList({ messages, blockedMessages, messagesEndRef, onReportFeedback }) {
   const [reportingMessageId, setReportingMessageId] = useState(null);
@@ -130,10 +143,16 @@ function MessageList({ messages, blockedMessages, messagesEndRef, onReportFeedba
               </div>
             );
           } else {
+            // Check if this is an AI message
+            const isAIMessage = message.isAI || message.author === 'AI Moderator';
+            
             return (
-              <div key={message.id} className="message message-approved">
+              <div key={message.id} className={`message message-approved ${isAIMessage ? 'message-ai' : ''}`}>
                 <div className="message-header">
-                  <span className="message-author">{message.author}</span>
+                  <span className="message-author">
+                    {isAIMessage && <span className="ai-badge">🤖</span>}
+                    {message.author}
+                  </span>
                   <span className="message-time">{formatTime(message.timestamp)}</span>
                 </div>
                 <div className="message-content">{message.text}</div>
@@ -142,16 +161,18 @@ function MessageList({ messages, blockedMessages, messagesEndRef, onReportFeedba
                     ✓ Moderated: {message.moderationStatus}
                   </div>
                 )}
-                <div className="message-actions">
-                  <button
-                    className="report-button"
-                    onClick={() => handleReportFeedback(message, false)}
-                    disabled={reportingMessageId === message.id}
-                    title="Report as incorrectly allowed (false negative)"
-                  >
-                    {reportingMessageId === message.id ? 'Reporting...' : '⚠️ Report False Negative'}
-                  </button>
-                </div>
+                {!isAIMessage && (
+                  <div className="message-actions">
+                    <button
+                      className="report-button"
+                      onClick={() => handleReportFeedback(message, false)}
+                      disabled={reportingMessageId === message.id}
+                      title="Report as incorrectly allowed (false negative)"
+                    >
+                      {reportingMessageId === message.id ? 'Reporting...' : '⚠️ Report False Negative'}
+                    </button>
+                  </div>
+                )}
               </div>
             );
           }
