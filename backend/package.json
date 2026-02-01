@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "NODE_OPTIONS='--max-old-space-size=512 --no-wasm-code-gc' node src/server.js",
+    "start": "node src/server.js",
     "dev": "node --watch src/server.js"
   },
   "keywords": ["chat", "moderation", "websocket", "huggingface"],
