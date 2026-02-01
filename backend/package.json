@@ -5,7 +5,8 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
+    "build": "cd ../frontend && npm install && npm run build",
+    "start": "NODE_OPTIONS='--max-old-space-size=512 --no-wasm-code-gc' node src/server.js",
     "dev": "node --watch src/server.js"
   },
   "keywords": ["chat", "moderation", "websocket", "huggingface"],

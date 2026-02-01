@@ -2,11 +2,21 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { setupSocketHandlers, cleanupAllRateLimits } from './socketHandler.js';
 import { closeGradioClient } from './moderationService.js';
 import { logModerationFeedback, getModerationFeedbackLogs } from './loggingService.js';
 import { submitFeedbackToHuggingFace, exportFeedbackToCSV, formatFeedbackForDataset } from './huggingFaceFeedbackService.js';
+import { getAnalytics } from './feedbackAnalytics.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Path to frontend dist folder
+const frontendDistPath = path.join(__dirname, '../../frontend/dist');
 
 const app = express();
 const httpServer = createServer(app);
@@ -31,6 +41,23 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// All API routes MUST be defined BEFORE static file serving
+// This ensures API endpoints work correctly and aren't intercepted by static middleware
+
+// Debug endpoint to check frontend path (remove in production if desired)
+app.get('/debug-frontend', (req, res) => {
+  res.json({
+    frontendDistPath,
+    exists: fs.existsSync(frontendDistPath),
+    __dirname,
+    files: fs.existsSync(frontendDistPath) ? fs.readdirSync(frontendDistPath) : [],
+    assetsExists: fs.existsSync(path.join(frontendDistPath, 'assets')),
+    assetsFiles: fs.existsSync(path.join(frontendDistPath, 'assets')) 
+      ? fs.readdirSync(path.join(frontendDistPath, 'assets'))
+      : [],
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -47,6 +74,23 @@ app.get('/api/info', (req, res) => {
     version: '1.0.0',
     moderationThreshold: config.moderation.threshold,
     rateLimit: config.rateLimit.messagesPerMinute,
+  });
+});
+
+// AI status endpoint
+app.get('/api/ai/status', (req, res) => {
+  res.json({
+    enabled: config.ai.enabled,
+    provider: 'OpenAI',
+    model: config.ai.model,
+    maxResponseLength: config.ai.maxResponseLength,
+    conversationHistorySize: config.ai.conversationHistorySize,
+    apiKeyConfigured: !!config.ai.apiKey,
+    note: config.ai.enabled 
+      ? (config.ai.apiKey 
+          ? 'AI agent is active and will respond to user messages'
+          : 'AI agent is enabled but OPENAI_API_KEY is not set')
+      : 'AI agent is disabled. Set AI_ENABLED=true to enable.',
   });
 });
 
@@ -112,6 +156,27 @@ app.post('/api/feedback', express.json(), async (req, res) => {
     }
   } catch (error) {
     console.error('Error handling feedback:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Get feedback analytics endpoint
+app.get('/api/feedback/analytics', (req, res) => {
+  try {
+    const dateStr = req.query.date || null;
+    const analytics = getAnalytics(dateStr);
+    
+    res.json({
+      success: true,
+      analytics,
+      date: dateStr || 'all',
+      note: 'Use ?date=YYYY-MM-DD to analyze specific date',
+    });
+  } catch (error) {
+    console.error('Error generating analytics:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -190,6 +255,63 @@ app.post('/api/feedback/submit-to-hf', express.json(), async (req, res) => {
 
 // Setup Socket.io handlers
 setupSocketHandlers(io);
+
+// Serve static files from frontend dist (AFTER all API routes)
+// This ensures assets (JS, CSS) are served correctly
+if (fs.existsSync(frontendDistPath)) {
+  // Serve static files with proper MIME types
+  app.use(express.static(frontendDistPath, {
+    maxAge: '1d', // Cache static assets
+    etag: true,
+  }));
+  console.log('📁 Serving frontend from:', frontendDistPath);
+  console.log('📁 Frontend dist exists:', fs.existsSync(frontendDistPath));
+  
+  // Log if assets folder exists
+  const assetsPath = path.join(frontendDistPath, 'assets');
+  if (fs.existsSync(assetsPath)) {
+    const assets = fs.readdirSync(assetsPath);
+    console.log('📦 Found', assets.length, 'asset files');
+  } else {
+    console.log('⚠️  Assets folder not found at:', assetsPath);
+  }
+  
+  // Fallback to index.html for SPA routing (must be AFTER static middleware)
+  // This catches all non-API routes and serves the React app
+  app.get('*', (req, res, next) => {
+    // Skip for API routes
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    // Skip for socket.io
+    if (req.path.startsWith('/socket.io')) {
+      return next();
+    }
+    // Skip for debug/health endpoints
+    if (req.path === '/health' || req.path === '/debug-frontend') {
+      return next();
+    }
+    // Skip for asset files - they should be handled by static middleware above
+    // If we reach here for assets, it means static middleware didn't find them
+    if (req.path.startsWith('/assets/')) {
+      console.log('⚠️  Asset not found via static middleware:', req.path);
+      return res.status(404).json({ error: 'Asset not found', path: req.path });
+    }
+    
+    // Serve index.html for all other routes (SPA routing)
+    const indexPath = path.join(frontendDistPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      console.log('⚠️  index.html not found at:', indexPath);
+      res.status(404).json({ error: 'Frontend not found' });
+    }
+  });
+} else {
+  console.log('⚠️  Frontend dist folder not found at:', frontendDistPath);
+  console.log('⚠️  Current __dirname:', __dirname);
+  console.log('⚠️  API-only mode.');
+}
 
 // Start server
 const PORT = config.server.port;

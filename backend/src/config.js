@@ -21,9 +21,20 @@ export const config = {
   rateLimit: {
     messagesPerMinute: parseInt(process.env.RATE_LIMIT_PER_MINUTE || '30', 10),
   },
+  ai: {
+    enabled: process.env.AI_ENABLED !== 'false', // Default to true unless explicitly disabled
+    apiKey: process.env.OPENAI_API_KEY || '',
+    model: process.env.AI_MODEL || 'gpt-3.5-turbo', // Default to GPT-3.5 Turbo
+    maxResponseLength: parseInt(process.env.AI_MAX_RESPONSE_LENGTH || '200', 10),
+    conversationHistorySize: parseInt(process.env.AI_CONVERSATION_HISTORY_SIZE || '5', 10),
+  },
 };
 
 // Validate required configuration
 if (!config.huggingFace.apiToken && config.server.nodeEnv === 'production') {
   console.warn('Warning: HF_API_TOKEN is not set. Moderation API calls will fail.');
+}
+
+if (config.ai.enabled && !config.ai.apiKey && config.server.nodeEnv === 'production') {
+  console.warn('Warning: OPENAI_API_KEY is not set. AI agent responses will fail.');
 }
