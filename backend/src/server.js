@@ -16,7 +16,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Path to frontend dist folder
-const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+// Try multiple possible paths since Railway might run from different directories
+let frontendDistPath = path.join(__dirname, '../../frontend/dist');
+if (!fs.existsSync(frontendDistPath)) {
+  // Try from project root (if running from root)
+  frontendDistPath = path.join(process.cwd(), 'frontend/dist');
+}
+if (!fs.existsSync(frontendDistPath)) {
+  // Try relative to current working directory
+  frontendDistPath = path.join(process.cwd(), '../frontend/dist');
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -308,9 +317,26 @@ if (fs.existsSync(frontendDistPath)) {
     }
   });
 } else {
-  console.log('⚠️  Frontend dist folder not found at:', frontendDistPath);
+  console.log('⚠️  Frontend dist folder not found');
+  console.log('⚠️  Tried paths:');
+  console.log('   -', path.join(__dirname, '../../frontend/dist'));
+  console.log('   -', path.join(process.cwd(), 'frontend/dist'));
+  console.log('   -', path.join(process.cwd(), '../frontend/dist'));
   console.log('⚠️  Current __dirname:', __dirname);
-  console.log('⚠️  API-only mode.');
+  console.log('⚠️  Current process.cwd():', process.cwd());
+  console.log('⚠️  API-only mode - frontend will not be served');
+  
+  // List what's actually in the directories
+  try {
+    console.log('📂 Contents of process.cwd():', fs.readdirSync(process.cwd()));
+  } catch (e) {
+    console.log('❌ Cannot read process.cwd():', e.message);
+  }
+  try {
+    console.log('📂 Contents of __dirname:', fs.readdirSync(__dirname));
+  } catch (e) {
+    console.log('❌ Cannot read __dirname:', e.message);
+  }
 }
 
 // Start server
